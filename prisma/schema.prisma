@@ -1,0 +1,44 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Category {
+  id          String       @id @default(uuid())
+  name        String
+  sortOrder   Int          @default(0)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  restaurants Restaurant[]
+}
+
+model Region {
+  id          String       @id @default(uuid())
+  name        String
+  parentId    String?
+  level       Int
+  parent      Region?      @relation("RegionTree", fields: [parentId], references: [id])
+  children    Region[]     @relation("RegionTree")
+  restaurants Restaurant[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model Restaurant {
+  id         String    @id @default(uuid())
+  name       String
+  address    String?
+  phone      String?
+  mapUrl     String?
+  imageUrl   String?
+  categoryId String?
+  regionId   String?
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  region     Region?   @relation(fields: [regionId], references: [id], onDelete: SetNull)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+}
