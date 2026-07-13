@@ -22,104 +22,52 @@ type TownItem = {
   town: string;
 };
 
-const OLD_REGION_ID_MAP: Record<string, string> = {
-  "region-guangdong": "440000",
-  "region-foshan": "440600",
-  "region-shunde": "440606",
-  "region-lunjiao": "440606-003000",
-};
-
 async function main() {
-  // 分类
   const categories = [
-    { name: "寿司", sortOrder: 0 },
-    { name: "烧烤", sortOrder: 1 },
-    { name: "火锅", sortOrder: 2 },
-    { name: "家常菜", sortOrder: 3 },
-    { name: "奶茶", sortOrder: 4 },
-    { name: "咖啡", sortOrder: 5 },
+    { id: "寿司", name: "寿司", sortOrder: 0 },
+    { id: "烧烤", name: "烧烤", sortOrder: 1 },
+    { id: "火锅", name: "火锅", sortOrder: 2 },
+    { id: "家常菜", name: "家常菜", sortOrder: 3 },
+    { id: "奶茶", name: "奶茶", sortOrder: 4 },
+    { id: "咖啡", name: "咖啡", sortOrder: 5 },
   ];
 
-  for (const category of categories) {
-    await prisma.category.upsert({
-      where: { id: category.name },
-      update: {},
-      create: {
-        id: category.name,
-        name: category.name,
-        sortOrder: category.sortOrder,
-      },
-    });
-  }
+  await prisma.category.createMany({
+    data: categories,
+    skipDuplicates: true,
+  });
 
-  // 构建广东四级行政区划数据
   const guangdong = (levelData as LevelItem[]).find((item) => item.code === "440000");
   if (!guangdong) {
     throw new Error("未找到广东省行政区划数据");
   }
 
-  const regions: { id: string; name: string; level: number; parentId: string | null }[] = [];
+  const level1 = [{ id: guangdong.code, name: guangdong.name, level: 1, parentId: null }];
+  const level2: { id: string; name: string; level: number; parentId: string | null }[] = [];
+  const level3: { id: string; name: string; level: number; parentId: string | null }[] = [];
 
-  // 省
-  regions.push({ id: guangdong.code, name: guangdong.name, level: 1, parentId: null });
-
-  // 市、区县
   for (const city of guangdong.children || []) {
-    regions.push({
-      id: city.code,
-      name: city.name,
-      level: 2,
-      parentId: guangdong.code,
-    });
-
+    level2.push({ id: city.code, name: city.name, level: 2, parentId: guangdong.code });
     for (const district of city.children || []) {
-      regions.push({
-        id: district.code,
-        name: district.name,
-        level: 3,
-        parentId: city.code,
-      });
+      level3.push({ id: district.code, name: district.name, level: 3, parentId: city.code });
     }
   }
 
-  // 乡镇/街道
-  const guangdongTowns = (townData as TownItem[]).filter((town) => town.code.startsWith("44"));
-  for (const town of guangdongTowns) {
-    regions.push({
+  const level4 = (townData as TownItem[])
+    .filter((town) => town.code.startsWith("44"))
+    .map((town) => ({
       id: `${town.code}-${town.town}`,
       name: town.name,
       level: 4,
       parentId: town.code,
-    });
-  }
+    }));
 
-  // 写入新的行政区划数据
-  for (const region of regions) {
-    await prisma.region.upsert({
-      where: { id: region.id },
-      update: {
-        name: region.name,
-        level: region.level,
-        parentId: region.parentId,
-      },
-      create: region,
-    });
-  }
+  await prisma.region.createMany({ data: level1, skipDuplicates: true });
+  await prisma.region.createMany({ data: level2, skipDuplicates: true });
+  await prisma.region.createMany({ data: level3, skipDuplicates: true });
+  await prisma.region.createMany({ data: level4, skipDuplicates: true });
 
-  // 将旧 region id 关联的餐厅迁移到新 id
-  for (const [oldId, newId] of Object.entries(OLD_REGION_ID_MAP)) {
-    await prisma.restaurant.updateMany({
-      where: { regionId: oldId },
-      data: { regionId: newId },
-    });
-  }
-
-  // 清理不再使用的旧 region 记录
-  await prisma.region.deleteMany({
-    where: { id: { in: Object.keys(OLD_REGION_ID_MAP) } },
-  });
-
-  console.log(`Seed completed. 共写入 ${regions.length} 个地区。`);
+  console.log(`Seed completed. 共写入 ${1 + level2.length + level3.length + level4.length} 个地区。`);
 }
 
 main()
