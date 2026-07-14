@@ -6,7 +6,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import { api } from "@/lib/api";
 import { Region } from "@/types";
@@ -128,7 +127,11 @@ export function RegionSelector({ value, onChange }: RegionSelectorProps) {
         onValueChange={(id) => handleLevelChange(1, id, setLevel2)}
       >
         <SelectTrigger className="bg-white/50">
-          <SelectValue placeholder="选择省/大区" />
+          {selectedIds.l1 ? (
+            level1.find((r) => r.id === selectedIds.l1)?.name
+          ) : (
+            <span className="text-muted-foreground">选择省/大区</span>
+          )}
         </SelectTrigger>
         <SelectContent>
           {level1.map((region) => (
@@ -145,7 +148,11 @@ export function RegionSelector({ value, onChange }: RegionSelectorProps) {
         disabled={!selectedIds.l1}
       >
         <SelectTrigger className="bg-white/50">
-          <SelectValue placeholder="选择市" />
+          {selectedIds.l2 ? (
+            level2.find((r) => r.id === selectedIds.l2)?.name
+          ) : (
+            <span className="text-muted-foreground">选择市</span>
+          )}
         </SelectTrigger>
         <SelectContent>
           {level2.map((region) => (
@@ -162,7 +169,11 @@ export function RegionSelector({ value, onChange }: RegionSelectorProps) {
         disabled={!selectedIds.l2}
       >
         <SelectTrigger className="bg-white/50">
-          <SelectValue placeholder="选择区/县" />
+          {selectedIds.l3 ? (
+            level3.find((r) => r.id === selectedIds.l3)?.name
+          ) : (
+            <span className="text-muted-foreground">选择区/县</span>
+          )}
         </SelectTrigger>
         <SelectContent>
           {level3.map((region) => (
@@ -179,7 +190,11 @@ export function RegionSelector({ value, onChange }: RegionSelectorProps) {
         disabled={!selectedIds.l3}
       >
         <SelectTrigger className="bg-white/50">
-          <SelectValue placeholder="选择街道/镇" />
+          {selectedIds.l4 ? (
+            level4.find((r) => r.id === selectedIds.l4)?.name
+          ) : (
+            <span className="text-muted-foreground">选择街道/镇</span>
+          )}
         </SelectTrigger>
         <SelectContent>
           {level4.map((region) => (
